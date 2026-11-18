@@ -15,6 +15,7 @@ Open `http://127.0.0.1:8768/`.
 ## Source fidelity
 
 - `splash.js`: browser Canvas port of `_LaunchPainter` in `lib/features/splash/presentation/screens/splash_screen.dart`.
+- `wordmark.js` and `wordmark-data.js`: original handwritten glyphs, sequential pen masks, cheek clay texture and bevel from `brand_wordmark.dart` and `_paintWordmark`.
 - `contours.js`: original quadratic brand paths from `brand_contours.dart`, in the same 416-unit space.
 - `assets/silk.frag`: original `assets/shaders/splash_fluid.frag`, adapted for WebGL fragment coordinates/output.
 - `assets/*.png`: original auth splash artwork.

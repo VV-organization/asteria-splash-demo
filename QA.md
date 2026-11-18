@@ -9,3 +9,10 @@
 - Original and staged Flutter splash source, contours and shader compared identical. Browser source retains original timing, geometry, artwork and shader formula; navigation to the app is replaced by retaining the final frame.
 
 Limitations: Safari/WebKit and physical devices were not tested. Browser rasterization and GPU precision can differ from Flutter. No independent end-user usability observation was performed.
+
+## Wordmark update · 2026-11-18
+
+- Added the current app's seven original handwritten glyphs and pen trajectories, preserving per-letter timing, multi-contour reveal, clay texture and soft bevel.
+- Independently compared every generated path command and coordinate with `brand_wordmark.dart`; all seven glyphs and seven pen paths match.
+- Chromium desktop/mobile: full playback, keyboard replay, frame reset and reduced-motion final-frame equality passed; no runtime errors or horizontal overflow. Mid-animation and final screenshots inspected.
+- Existing logo assets and silk shader unchanged. Safari/physical-device limitations above still apply.

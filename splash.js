@@ -1,4 +1,5 @@
 import { contours } from './contours.js';
+import { createWordmark } from './wordmark.js';
 
 // Port of Asteria's _LaunchPainter. Keep timing and 416-unit artwork coordinates.
 const DURATION = 3.85;
@@ -20,6 +21,7 @@ const layer = () => { const c = document.createElement('canvas'); c.width = c.he
 const composite = layer(), revealLayer = layer(), mask = layer(), texture = layer();
 const mix = composite.getContext('2d'), reveal = revealLayer.getContext('2d');
 const maskCtx = mask.getContext('2d'), tex = texture.getContext('2d');
+let drawWordmark;
 let base, mark, silk, frame = 0, startedAt = null, elapsed = 0, ready = false;
 let pausedAt = null;
 
@@ -96,6 +98,7 @@ function draw(t) {
   mix.globalCompositeOperation = 'lighter'; mix.globalAlpha = finish; mix.drawImage(mark,0,0,416,416);
   mix.globalAlpha = 1; mix.globalCompositeOperation = 'source-over';
   ctx.drawImage(composite,(width-side)/2,height*.4-side/2,side,side);
+  drawWordmark(ctx, width, height, side, t);
 }
 // Flutter Path bounds include control points; these are generated from the same paths.
 function boundsFor(i) {
@@ -134,6 +137,7 @@ window.addEventListener('pagehide',event => { if (event.persisted) return; cance
 try {
   [base,mark] = await Promise.all([loadImage('./assets/splash_clay_base.png'),loadImage('./assets/asteria_mark.png')]);
   try { silk = await setupSilk(); } catch (error) { console.warn('Silk fallback:',error.message); }
+  drawWordmark = createWordmark(mark);
   ready = true; resize(); replay.disabled = false; restart();
 } catch {
   status.classList.add('error'); status.textContent = 'Не удалось загрузить анимацию. Обновите страницу.';
