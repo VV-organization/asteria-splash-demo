@@ -1,12 +1,15 @@
 import { contours } from './contours.js';
-import { createWordmark } from './wordmark.js';
+import { createWordmark } from './wordmark.js?v=final-silk-20261118';
 
 // Port of Asteria's _LaunchPainter. Keep timing and 416-unit artwork coordinates.
 const DURATION = 3.85;
+const FINAL_HOLD = 2;
+const TOTAL_DURATION = DURATION + FINAL_HOLD;
 const ramp = v => { const x = Math.max(0, Math.min(1, v)); return x * x * (3 - 2 * x); };
 const stage = document.querySelector('.stage');
 const background = document.querySelector('#silk');
 const artwork = document.querySelector('#art');
+const video = document.querySelector('#silk-video');
 const replay = document.querySelector('#replay');
 const status = document.querySelector('#status');
 const ctx = artwork.getContext('2d');
@@ -23,7 +26,7 @@ const mix = composite.getContext('2d'), reveal = revealLayer.getContext('2d');
 const maskCtx = mask.getContext('2d'), tex = texture.getContext('2d');
 let drawWordmark;
 let base, mark, silk, frame = 0, startedAt = null, elapsed = 0, ready = false;
-let pausedAt = null;
+let pausedAt = null, silkTime = 0, previousTick = null, playbackVersion = 0;
 
 async function loadImage(path) {
   const image = new Image(); image.src = new URL(path, import.meta.url).href;
@@ -32,7 +35,7 @@ async function loadImage(path) {
 async function setupSilk() {
   const gl = background.getContext('webgl', { alpha: false, antialias: false });
   if (!gl) return null;
-  const response = await fetch(new URL('./assets/silk.frag', import.meta.url));
+  const response = await fetch(new URL('./assets/silk.frag?v=final-silk-20261118', import.meta.url));
   if (!response.ok) throw new Error('Shader unavailable');
   function compile(type, source) {
     const shader = gl.createShader(type); gl.shaderSource(shader, source); gl.compileShader(shader);
@@ -54,7 +57,7 @@ async function setupSilk() {
   };
 }
 function draw(t) {
-  elapsed = t; silk?.draw(t);
+  elapsed = t; silk?.draw(silkTime);
   const { width, height } = stage.getBoundingClientRect();
   const ratio = artwork.width / width;
   ctx.setTransform(ratio,0,0,ratio,0,0); ctx.clearRect(0,0,width,height);
@@ -111,29 +114,50 @@ function resize() {
   for (const canvas of [background, artwork]) { canvas.width = Math.round(width*dpr); canvas.height = Math.round(height*dpr); }
   if (ready) draw(elapsed);
 }
+function playBackground() {
+  if (reducedMotion.matches) return;
+  const version = playbackVersion;
+  const promise = video.play();
+  promise?.catch(() => {
+    if (version === playbackVersion) stage.classList.add('shader-only');
+  });
+}
+video.addEventListener('playing', () => {
+  if (!reducedMotion.matches && frame) {
+    stage.classList.remove('shader-only'); video.classList.add('playing');
+  }
+});
+video.addEventListener('error', () => stage.classList.add('shader-only'));
 function tick(now) {
   if (startedAt === null) startedAt = now;
-  const t = Math.min(DURATION,(now-startedAt)/1000); draw(t);
-  if (t < DURATION) frame = requestAnimationFrame(tick);
-  else { frame = 0; status.textContent = 'Анимация завершена. Можно повторить.'; }
+  if (previousTick !== null) silkTime += Math.min((now - previousTick) / 1000, .048);
+  previousTick = now;
+  const total = Math.min(TOTAL_DURATION, (now - startedAt) / 1000);
+  draw(Math.min(DURATION, total));
+  if (total < TOTAL_DURATION) frame = requestAnimationFrame(tick);
+  else { frame = 0; video.pause(); status.textContent = 'Анимация завершена. Можно повторить.'; }
 }
 function restart() {
   if (!ready) return;
   cancelAnimationFrame(frame); frame = 0; startedAt = null; pausedAt = null;
+  previousTick = null; silkTime = 0; playbackVersion++;
+  video.pause(); video.classList.remove('playing');
+  try { video.currentTime = 0; } catch { /* Shader remains available before metadata. */ }
+  stage.classList.toggle('shader-only', reducedMotion.matches || Boolean(video.error));
   status.textContent = reducedMotion.matches ? 'Уменьшенное движение: показан итоговый знак.' : 'Анимация запущена.';
-  if (reducedMotion.matches) draw(DURATION);
-  else { draw(0); frame = requestAnimationFrame(tick); }
+  if (reducedMotion.matches) { silkTime = DURATION; draw(DURATION); }
+  else { draw(0); frame = requestAnimationFrame(tick); playBackground(); }
 }
 replay.addEventListener('click',restart);
 reducedMotion.addEventListener('change',restart);
 const observer = new ResizeObserver(resize); observer.observe(stage);
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && frame) { cancelAnimationFrame(frame); frame = 0; pausedAt = performance.now(); }
-  else if (!document.hidden && pausedAt !== null) { if (startedAt !== null) startedAt += performance.now()-pausedAt; pausedAt = null; frame = requestAnimationFrame(tick); }
+  if (document.hidden && frame) { cancelAnimationFrame(frame); frame = 0; pausedAt = performance.now(); video.pause(); }
+  else if (!document.hidden && pausedAt !== null) { if (startedAt !== null) startedAt += performance.now()-pausedAt; pausedAt = null; previousTick = null; frame = requestAnimationFrame(tick); playBackground(); }
 });
 background.addEventListener('webglcontextlost', event => { event.preventDefault(); silk = null; status.textContent = 'Показан упрощённый фон.'; });
 background.addEventListener('webglcontextrestored', async () => { try { silk = await setupSilk(); draw(elapsed); } catch { /* Solid background remains usable. */ } });
-window.addEventListener('pagehide',event => { if (event.persisted) return; cancelAnimationFrame(frame); observer.disconnect(); silk?.dispose(); });
+window.addEventListener('pagehide',event => { if (event.persisted) return; cancelAnimationFrame(frame); video.pause(); observer.disconnect(); silk?.dispose(); });
 try {
   [base,mark] = await Promise.all([loadImage('./assets/splash_clay_base.png'),loadImage('./assets/asteria_mark.png')]);
   try { silk = await setupSilk(); } catch (error) { console.warn('Silk fallback:',error.message); }

@@ -75,9 +75,10 @@ export function createWordmark(mark) {
     const wordWidth = side * 1.15;
     ctx.save(); ctx.translate((width - wordWidth) / 2, height * .4 + side * .55);
     ctx.scale(wordWidth / WIDTH, wordWidth / WIDTH);
-    let start = .75;
+    const writingTime = (t - .75) * 1.12;
+    let start = 0;
     for (let i = 0; i < glyphs.length; i++) {
-      const elapsed = t - start, duration = DURATIONS[i];
+      const elapsed = writingTime - start, duration = DURATIONS[i];
       if (elapsed <= 0) break;
       start += duration;
       const progress = ramp(elapsed / duration), fill = ramp((elapsed - .075) / duration);

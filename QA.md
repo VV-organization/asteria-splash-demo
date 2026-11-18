@@ -16,3 +16,11 @@ Limitations: Safari/WebKit and physical devices were not tested. Browser rasteri
 - Independently compared every generated path command and coordinate with `brand_wordmark.dart`; all seven glyphs and seven pen paths match.
 - Chromium desktop/mobile: full playback, keyboard replay, frame reset and reduced-motion final-frame equality passed; no runtime errors or horizontal overflow. Mid-animation and final screenshots inspected.
 - Existing logo assets and silk shader unchanged. Safari/physical-device limitations above still apply.
+
+## Final app sync · 2026-11-18
+
+- Re-read canonical final sources after the user's last edits. Regenerated brand paths from the final Dart files and copied the latest iOS silk video/poster byte-for-byte.
+- Updated writing to `(t - .75) * 1.12`, independent background clock, 450ms video entrance, and a 2-second final hold after 3.85 seconds of artwork.
+- Native iOS foreground MOV is a cached render of the same current Dart painter; the demo retains its live Canvas equivalent. Independent source audit confirmed the export painter and brand paths match canonical sources exactly.
+- Chromium desktop/mobile: actual video playback; 5.85-second total timeline; unchanged artwork and moving silk during hold; keyboard replay and clock reset; reduced-motion final-frame equality; no runtime errors or horizontal overflow. Autoplay rejection falls back to the live app shader.
+- Independent visual/source QA found no high/medium issues. No build step is required for this static demo. Safari and physical-device limits remain.
